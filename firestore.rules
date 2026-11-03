@@ -1,0 +1,72 @@
+rules_version = '2';
+
+// Regras de segurança do Cloud Firestore do Bloco de Notas.
+//
+// Estrutura:
+//   users/{userId}/notes/{noteId}
+//   users/{userId}/categories/{categoryId}
+//
+// Princípios:
+//   1. Tudo é negado por padrão.
+//   2. Só o usuário autenticado cujo uid é {userId} lê ou escreve na própria
+//      subárvore. Ninguém consegue listar ou alterar notas de outra pessoa.
+//   3. O campo `uid` gravado no documento precisa ser o do próprio usuário e
+//      o `id` precisa ser igual ao id do documento.
+//   4. Os campos e tipos são validados para evitar dados malformados.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function isValidNote(userId, noteId) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['id', 'uid', 'title', 'content', 'categoryId',
+                               'createdAt', 'updatedAt', 'deletedAt',
+                               'serverUpdatedAt'])
+          && d.keys().hasAll(['id', 'uid', 'title', 'content',
+                              'createdAt', 'updatedAt'])
+          && d.id == noteId
+          && d.uid == userId
+          && d.title is string && d.title.size() <= 500
+          && d.content is string && d.content.size() <= 100000
+          && (!('categoryId' in d) || d.categoryId == null || d.categoryId is string)
+          && d.createdAt is int
+          && d.updatedAt is int
+          && (!('deletedAt' in d) || d.deletedAt == null || d.deletedAt is int)
+          && (!('serverUpdatedAt' in d) || d.serverUpdatedAt == request.time);
+    }
+
+    function isValidCategory(userId, categoryId) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['id', 'uid', 'name', 'colorIndex', 'updatedAt',
+                               'serverUpdatedAt'])
+          && d.keys().hasAll(['id', 'uid', 'name', 'updatedAt'])
+          && d.id == categoryId
+          && d.uid == userId
+          && d.name is string && d.name.size() > 0 && d.name.size() <= 40
+          && (!('colorIndex' in d) || d.colorIndex is int)
+          && d.updatedAt is int
+          && (!('serverUpdatedAt' in d) || d.serverUpdatedAt == request.time);
+    }
+
+    match /users/{userId} {
+      match /notes/{noteId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidNote(userId, noteId);
+      }
+
+      match /categories/{categoryId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+                              && isValidCategory(userId, categoryId);
+      }
+    }
+
+    // Qualquer outro caminho é bloqueado.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
