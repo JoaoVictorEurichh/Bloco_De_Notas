@@ -43,3 +43,21 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# ------------------------------------------------------------------
+# Segredos e configurações locais do Firebase (NÃO versionar)
+# ------------------------------------------------------------------
+firebase.env.json
+*.env.json
+!firebase.env.example.json
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+macos/Runner/GoogleService-Info.plist
+.firebaserc
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.env
+
+# Testes das regras do Firestore (Node.js)
+node_modules/

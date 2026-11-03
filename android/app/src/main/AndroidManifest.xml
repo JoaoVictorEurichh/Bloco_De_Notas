@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Necessárias para acessar o Firebase e detectar a volta da conexão. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <application
-        android:label="bloco_de_nota_turma_a"
+        android:label="Bloco de Notas"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
